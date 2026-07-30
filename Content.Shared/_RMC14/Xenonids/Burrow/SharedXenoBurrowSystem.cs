@@ -14,6 +14,8 @@ using Content.Shared.DoAfter;
 using Content.Shared.Examine;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Maps;
+using Content.Shared._RMC14.Movement;
+using Content.Shared.Mobs.Components;
 using Content.Shared.Physics;
 using Content.Shared.Popups;
 using Content.Shared.StatusEffectNew;
@@ -26,6 +28,7 @@ using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Events;
 using Robust.Shared.Physics.Systems;
+using Robust.Shared.Player;
 using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
 
@@ -54,6 +57,9 @@ public abstract class SharedXenoBurrowSystem : EntitySystem
     [Dependency] private readonly XenoSystem _xeno = default!;
     [Dependency] private readonly SharedRMCActionsSystem _rmcActions = default!;
     [Dependency] private readonly RMCPullingSystem _rmcPulling = default!;
+    [Dependency] private readonly SharedRMCLagCompensationSystem _rmcLagCompensation = default!;
+
+    private readonly HashSet<Entity<MobStateComponent>> _hit = new();
 
     public override void Initialize()
     {
@@ -129,6 +135,9 @@ public abstract class SharedXenoBurrowSystem : EntitySystem
 
     private void SetBurrow(Entity<XenoBurrowComponent> burrower, ref BurrowedEvent args)
     {
+        if (!TryComp(burrower, out TransformComponent? transform))
+            return;
+
         if (args.burrowed == burrower.Comp.Active)
             return;
 
@@ -159,14 +168,20 @@ public abstract class SharedXenoBurrowSystem : EntitySystem
                 Dirty(burrower, body);
             }
 
+            var session = CompOrNull<ActorComponent>(burrower)?.PlayerSession;
+
             if (_net.IsServer)
             {
                 _audio.PlayPvs(burrower.Comp.BurrowUpSound, burrower);
 
-                var entitiesToStun = _entityLookup.GetEntitiesInRange(burrower, burrower.Comp.UnburrowStunRange);
-                foreach (var entity in entitiesToStun)
+                _entityLookup.GetEntitiesInRange(transform.Coordinates, burrower.Comp.UnburrowStunRange + burrower.Comp.LagCompensationLookupMargin, _hit);
+                foreach (var entity in _hit)
                 {
                     if (!_xeno.CanAbilityAttackTarget(burrower, entity))
+                        continue;
+
+                    // Range check against the target's lag-compensated position
+                    if (!_rmcLagCompensation.IsWithinMargin(burrower.Owner, entity.Owner, session, burrower.Comp.UnburrowStunRange))
                         continue;
 
                     _stun.TryParalyze(entity, burrower.Comp.UnburrowStunLength, false);

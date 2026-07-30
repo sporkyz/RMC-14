@@ -63,6 +63,12 @@ public sealed partial class XenoBurrowComponent : Component
     public float UnburrowStunRange = 0.5f;
 
     /// <summary>
+    /// Lag compensation range loosely based on max marine movespeed
+    /// </summary>
+    [DataField]
+    public float LagCompensationLookupMargin = 4f;
+
+    /// <summary>
     /// How long the entities in unburrow stun range will be stunned for
     /// </summary>
     [DataField]
