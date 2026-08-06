@@ -80,7 +80,7 @@ public sealed class XenoScreechSystem : EntitySystem
                 continue;
 
             // Track who was actually stunned here so we don't skip over
-            // far away (but still within range) entities later
+            // targets beyond the paralyze range but still within stun range
             _closeStunned.Add(receiver);
             _cameraShake.ShakeCamera(receiver, xeno.Comp.CloseScreenShakeShakes, xeno.Comp.CloseScreenShakeStrength);
             Deafen(xeno, receiver, xeno.Comp.CloseDeafTime, session);
