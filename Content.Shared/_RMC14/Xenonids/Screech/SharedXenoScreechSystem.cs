@@ -128,7 +128,7 @@ public sealed class XenoScreechSystem : EntitySystem
         if (!_rmcLagCompensation.IsWithinMargin(xeno, receiver, session, range))
             return false;
 
-        // Check line of sight against the receiver's lag-compensated position
+        // Check line of sight against the target's lag-compensated position
         if (occlusionCheck && !_examineSystem.InRangeUnOccluded(xeno, _rmcLagCompensation.GetCoordinates(receiver, session)))
             return false;
 
